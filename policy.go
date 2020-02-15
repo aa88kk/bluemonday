@@ -133,6 +133,9 @@ type attrPolicy struct {
 	// optional pattern to match, when not nil the regexp needs to match
 	// otherwise the attribute is removed
 	regexp *regexp.Regexp
+
+	// liujie added.
+	mustMatch bool
 }
 
 type stylePolicy struct {
@@ -155,6 +158,9 @@ type attrPolicyBuilder struct {
 	attrNames  []string
 	regexp     *regexp.Regexp
 	allowEmpty bool
+
+	// liujie added.
+	mustMatch bool
 }
 
 type stylePolicyBuilder struct {
@@ -271,6 +277,13 @@ func (abp *attrPolicyBuilder) Matching(regex *regexp.Regexp) *attrPolicyBuilder 
 	return abp
 }
 
+// liujie added.
+func (abp *attrPolicyBuilder) MustMatching(regex *regexp.Regexp) *attrPolicyBuilder {
+	abp.regexp = regex
+	abp.mustMatch = true
+	return abp
+}
+
 // OnElements will bind an attribute policy to a given range of HTML elements
 // and return the updated policy
 func (abp *attrPolicyBuilder) OnElements(elements ...string) *Policy {
@@ -288,6 +301,8 @@ func (abp *attrPolicyBuilder) OnElements(elements ...string) *Policy {
 			if abp.regexp != nil {
 				ap.regexp = abp.regexp
 			}
+			// liujie added.
+			ap.mustMatch = abp.mustMatch
 
 			abp.p.elsAndAttrs[element][attr] = ap
 		}
@@ -433,24 +448,24 @@ func (spb *stylePolicyBuilder) OnElements(elements ...string) *Policy {
 // and return the updated policy
 func (spb *stylePolicyBuilder) OnElementsMatching(regex *regexp.Regexp) *Policy {
 
-		for _, attr := range spb.propertyNames {
+	for _, attr := range spb.propertyNames {
 
-			if _, ok := spb.p.elsMatchingAndStyles[regex]; !ok {
-				spb.p.elsMatchingAndStyles[regex] = make(map[string]stylePolicy)
-			}
-
-			sp := stylePolicy{}
-			if spb.handler != nil {
-				sp.handler = spb.handler
-			} else if len(spb.enum) > 0 {
-				sp.enum = spb.enum
-			} else if spb.regexp != nil {
-				sp.regexp = spb.regexp
-			} else {
-				sp.handler = getDefaultHandler(attr)
-			}
-			spb.p.elsMatchingAndStyles[regex][attr] = sp
+		if _, ok := spb.p.elsMatchingAndStyles[regex]; !ok {
+			spb.p.elsMatchingAndStyles[regex] = make(map[string]stylePolicy)
 		}
+
+		sp := stylePolicy{}
+		if spb.handler != nil {
+			sp.handler = spb.handler
+		} else if len(spb.enum) > 0 {
+			sp.enum = spb.enum
+		} else if spb.regexp != nil {
+			sp.regexp = spb.regexp
+		} else {
+			sp.handler = getDefaultHandler(attr)
+		}
+		spb.p.elsMatchingAndStyles[regex][attr] = sp
+	}
 
 	return spb.p
 }
